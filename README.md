@@ -3,7 +3,7 @@
 想要理解区块链如何工作最好的方式就是制作一个啦。
 
 [Learn Blockchains by Building One](https://hackernoon.com/learn-blockchains-by-building-one-117428612f46)
-
+[加密货币与区块链（三）：什么是信任](https://zhuanlan.zhihu.com/p/36929944)
 ## Keywords
 ruby, blockchain, consensus
 
