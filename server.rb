@@ -1,5 +1,6 @@
 require "cuba"
 require "securerandom"
+require 'awesome_print'
 require "./blockchain.rb"
 
 module Cuba::Sugar
@@ -25,6 +26,12 @@ Cuba.plugin Cuba::Sugar::As
 
 Cuba.define do
   on get do
+
+    on 'test' do
+      ap req
+      as_json {{ data: "test" }}
+    end
+
     on 'mine' do
       last_block = blockchain.last_block
       last_proof = last_block[:proof]
@@ -57,6 +64,7 @@ Cuba.define do
     end
 
     on 'nodes/resolve' do
+      blockchain.current_node = "#{req["SERVER_NAME"]}:#{req["SERVER_PORT"]}"
       resolved = blockchain.resolve_conflicts
       if resolved
         data = {

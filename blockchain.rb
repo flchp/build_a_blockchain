@@ -1,10 +1,11 @@
 require "digest"
 require "json"
 require 'faraday'
+require 'open-uri'
 
 class Blockchain
 
-  attr_accessor :chain, :nodes
+  attr_accessor :chain, :nodes, :current_node
 
   class << self
     def hash(blk)
@@ -17,6 +18,8 @@ class Blockchain
     @chain = []
     @current_transactions = []
     @nodes = Set.new
+    @current_node = nil
+
     new_block(100, 1)
   end
 
@@ -78,8 +81,9 @@ class Blockchain
     # Only looking for chains longer than this one
     max_length = @chain.count
 
-    @nodes.each do |node|
-      conn = Faraday.new(url: node)
+    @nodes.delete(@current_node).each do |node|
+      puts node
+      conn = Faraday.new(url: "http://#{node}/chain")
 
       res = conn.get do |conn_get|
         conn_get.options.open_timeout = 15
