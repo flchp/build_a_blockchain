@@ -2,6 +2,7 @@ source 'https://gems.ruby-china.com/'
 
 gem 'cuba'
 gem 'cutest'
+gem 'faraday'
 
 group :development do
   gem 'shotgun'

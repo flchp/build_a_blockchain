@@ -1,18 +1,15 @@
 require "digest"
 require "json"
+require 'faraday'
 
 class Blockchain
 
-  attr_accessor :chain
+  attr_accessor :chain, :nodes
 
   class << self
     def hash(blk)
       blk_str = JSON.dump (blk.sort).to_h
       Digest::SHA256.hexdigest blk_str
-    end
-
-    def valid_proof?(last_proof, proof)
-      Digest::SHA256.hexdigest("#{last_proof}#{proof}")[0..3] == "0000"
     end
   end
 
@@ -55,7 +52,6 @@ class Blockchain
       recipient: recipient,
       amount: amount
     }
-    puts @current_transactions
     last_block[:index] + 1
   end
 
@@ -66,7 +62,7 @@ class Blockchain
   def PoW(last_proof)
     # proof of work algorithm (PoW)
     proof = 0
-    while Blockchain.valid_proof?(last_proof, proof) == false
+    while valid_proof?(last_proof, proof) == false
       proof += 1
     end
     proof
@@ -75,5 +71,63 @@ class Blockchain
   def register_node(address)
     # TODO make sure this is a valid url path
     @nodes.add address
+  end
+
+  def resolve_conflicts
+    new_chain = nil
+    # Only looking for chains longer than this one
+    max_length = @chain.count
+
+    @nodes.each do |node|
+      conn = Faraday.new(url: node)
+
+      res = conn.get do |conn_get|
+        conn_get.options.open_timeout = 15
+        conn_get.options.timeout = 15
+      end
+
+      if res.status == 200
+        content = JSON.parse(res.body, symbolize_names: true)
+        length = content[:data][:length]
+        chain = content[:data][:chain]
+
+        if length > max_length && valid_chain?(chain)
+          max_length = length
+          new_chain = chain
+        end
+      end
+    end
+
+    if new_chain
+      @chain = new_chain
+      true
+    else
+      false
+    end
+  end
+
+  private
+  def valid_proof?(last_proof, proof)
+    Digest::SHA256.hexdigest("#{last_proof}#{proof}")[0..3] == "0000"
+  end
+
+  def valid_chain?(chain)
+    last_block = chain[0]
+    current_index = 1
+    while current_index < chain.count
+      blk = chain[current_index]
+      puts last_block
+      puts blk
+      puts "\n----------------\n"
+      if blk[:previous_hash] != Blockchain.hash(last_block)
+        false
+      end
+
+      unless valid_proof?(last_block[:proof], blk[:proof])
+        false
+      end
+
+      true
+    end
   end
 end

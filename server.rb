@@ -55,6 +55,24 @@ Cuba.define do
         }
       end
     end
+
+    on 'nodes/resolve' do
+      resolved = blockchain.resolve_conflicts
+      if resolved
+        data = {
+          message: "our chain was replaced",
+          new_chain: blockchain.chain
+        }
+      else
+        data = {
+          message: "our chain was authorized",
+          new_chain: blockchain.chain
+        }
+      end
+
+      as_json {{ data: data }}
+    end
+
   end
 
   on post do
@@ -71,6 +89,20 @@ Cuba.define do
         end
       end
     end
-  end
 
+    on 'nodes/register' do
+      on param('nodes') do |nodes|
+        nodes.split('|').each do |node|
+          blockchain.register_node node
+        end
+
+        data = {
+          message: "new nodes have been added",
+          total_nodes: blockchain.nodes.to_a
+        }
+
+        as_json {{ data: data}}
+      end
+    end
+  end
 end
