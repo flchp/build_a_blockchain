@@ -201,6 +201,93 @@ thin start -p 3000
 * GET /nodes/resolve 这个地方用来解决冲突
 
 
-
 ```ruby
+def valid_chain?(chain)
+  last_block = chain[0]
+  current_index = 1
+
+  while current_index < chain.size
+    block = chain[current_index]
+    puts "count 1"
+    # Check that the hash of the block is correct
+    if block[:previous_hash] != Blockchain.hash(last_block)
+      return false
+    end
+
+    # Check that the Proof of Work is correct
+    if !valid_proof?(last_block[:proof], block[:proof])
+      return false
+    end
+
+    last_block = block
+    current_index += 1
+  end
+  return true
+
+end
+def resolve_conflicts
+  new_chain = nil
+  # Only looking for chains longer than this one
+  max_length = @chain.count
+  aval = @nodes.delete @current_node
+  aval.each do |node|
+    conn = Faraday.new(url: "http://#{node}/chain")
+
+    res = conn.get do |conn_get|
+      conn_get.options.open_timeout = 15
+      conn_get.options.timeout = 15
+    end
+    if res.status == 200
+      content = JSON.parse(res.body, symbolize_names: true)
+      length = content[:data][:length]
+      chain = content[:data][:chain]
+      ap "node #{node} len #{length > max_length} valid_chain #{valid_chain?(chain)}"
+      if length > max_length && valid_chain?(chain)
+        max_length = length
+        new_chain = chain
+      end
+    end
+  end
+
+  if new_chain
+    puts "found new chain here"
+    @chain = new_chain
+    return true
+  end
+  return false
+end
+
+# in server.rb
+
+on 'nodes/resolve' do
+
+  blockchain.current_node = "#{env["SERVER_NAME"]}:#{env["SERVER_PORT"]}"
+  resolved = blockchain.resolve_conflicts
+  if resolved
+    data = {
+      message: "our chain was replaced",
+      new_chain: blockchain.chain
+    }
+  else
+    data = {
+      message: "our chain was authorized",
+      new_chain: blockchain.chain
+    }
+  end
+
+  as_json {{ data: data }}
+end
 ```
+
+valid_chain? 用来判断这个链是否正确的，可以看到 resolve_conflicts 里面主要用到的判断就是链长和是否是一条合格的链，如果更长并且合法，那么当前的链就替换为该链。不过这里值得注意的是，你需要把nodes中的自己的节点移除掉，这样其实是可以提高速度，并可以解决一个问题，单线程的机器中，你不能call自己。（会有一个OpenTimeOUt的错误，总是这里你把自己本身的节点去掉就可以了。）
+
+到这里，你就可以用另一台机器或者使用不同的端口来模拟多个节点，我这边 Rakefile 里面默认是通过单机不同端口来模拟多个节点。
+
+完整的代码请参考[传送门](https://github.com/lostpupil/build_a_blockchain)
+
+
+## 你可以开始和小伙伴们玩耍这个蠢蠢的链了
+
+希望这个东西能够给你一些启发。
+
+> 如果你认为技术能解决安全问题，那么你既不懂安全也不懂技术。 :)
