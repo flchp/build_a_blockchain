@@ -12,5 +12,5 @@ end
 
 desc "stop all server"
 task :stop do
-  exec "for pidfile in tmp/pids/*.pid; do echo kill `cat $pidfile`; kill `cat $pidfile`; done"
+  exec "for pidfile in tmp/pids/*.pid; do echo kill -9 `cat $pidfile`; kill `cat $pidfile`; done"
 end

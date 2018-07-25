@@ -1,7 +1,7 @@
 require "digest"
 require "json"
 require 'faraday'
-require 'open-uri'
+require 'awesome_print'
 
 class Blockchain
 
@@ -80,21 +80,21 @@ class Blockchain
     new_chain = nil
     # Only looking for chains longer than this one
     max_length = @chain.count
-
-    @nodes.delete(@current_node).each do |node|
-      puts node
+    aval = @nodes.delete @current_node
+    aval.each do |node|
       conn = Faraday.new(url: "http://#{node}/chain")
 
       res = conn.get do |conn_get|
         conn_get.options.open_timeout = 15
         conn_get.options.timeout = 15
       end
-
       if res.status == 200
         content = JSON.parse(res.body, symbolize_names: true)
         length = content[:data][:length]
         chain = content[:data][:chain]
-
+        ap "-------------------------------------------------"
+        ap "node #{node} len #{length > max_length} valid_chain #{valid_chain?(chain)}"
+        ap "-------------------------------------------------"
         if length > max_length && valid_chain?(chain)
           max_length = length
           new_chain = chain
@@ -103,11 +103,11 @@ class Blockchain
     end
 
     if new_chain
+      puts "found new chain here"
       @chain = new_chain
-      true
-    else
-      false
+      return true
     end
+    return false
   end
 
   private
@@ -120,18 +120,17 @@ class Blockchain
     current_index = 1
     while current_index < chain.count
       blk = chain[current_index]
-      puts last_block
-      puts blk
-      puts "\n----------------\n"
+      
       if blk[:previous_hash] != Blockchain.hash(last_block)
-        false
+        return false
       end
 
-      unless valid_proof?(last_block[:proof], blk[:proof])
-        false
+      if !valid_proof?(last_block[:proof], blk[:proof])
+        return false
       end
-
-      true
+      last_blockock = blk
+      current_index += 1
     end
+    return true
   end
 end

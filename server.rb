@@ -1,6 +1,6 @@
 require "cuba"
 require "securerandom"
-require 'awesome_print'
+require "awesome_print"
 require "./blockchain.rb"
 
 module Cuba::Sugar
@@ -18,7 +18,6 @@ module Cuba::Sugar
     end
   end
 end
-
 node_identifier = SecureRandom.hex(20)
 blockchain = Blockchain.new
 
@@ -27,9 +26,8 @@ Cuba.plugin Cuba::Sugar::As
 Cuba.define do
   on get do
 
-    on 'test' do
-      ap req
-      as_json {{ data: "test" }}
+    on root do
+      as_json {{ data: "root" }}
     end
 
     on 'mine' do
@@ -64,8 +62,9 @@ Cuba.define do
     end
 
     on 'nodes/resolve' do
-      blockchain.current_node = "#{req["SERVER_NAME"]}:#{req["SERVER_PORT"]}"
-      resolved = blockchain.resolve_conflicts
+
+      blockchain.current_node = "#{env["SERVER_NAME"]}:#{env["SERVER_PORT"]}"
+      ap resolved = blockchain.resolve_conflicts
       if resolved
         data = {
           message: "our chain was replaced",
