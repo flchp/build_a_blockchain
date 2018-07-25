@@ -64,12 +64,11 @@ class Blockchain
 
   def PoW(last_proof)
     # proof of work algorithm (PoW)
-    proof = 0
-    while valid_proof?(last_proof, proof) == false
-      proof += 1
-    end
+    proof = -1
+    proof += 1 until valid_proof?(last_proof, proof)
     proof
   end
+
 
   def register_node(address)
     # TODO make sure this is a valid url path
@@ -92,9 +91,7 @@ class Blockchain
         content = JSON.parse(res.body, symbolize_names: true)
         length = content[:data][:length]
         chain = content[:data][:chain]
-        ap "-------------------------------------------------"
         ap "node #{node} len #{length > max_length} valid_chain #{valid_chain?(chain)}"
-        ap "-------------------------------------------------"
         if length > max_length && valid_chain?(chain)
           max_length = length
           new_chain = chain
@@ -118,19 +115,24 @@ class Blockchain
   def valid_chain?(chain)
     last_block = chain[0]
     current_index = 1
-    while current_index < chain.count
-      blk = chain[current_index]
-      
-      if blk[:previous_hash] != Blockchain.hash(last_block)
+
+    while current_index < chain.size
+      block = chain[current_index]
+
+      # Check that the hash of the block is correct
+      if block[:previous_hash] != Blockchain.hash(last_block)
         return false
       end
 
-      if !valid_proof?(last_block[:proof], blk[:proof])
+      # Check that the Proof of Work is correct
+      if !valid_proof?(last_block[:proof], block[:proof])
         return false
       end
-      last_blockock = blk
+
+      last_block = block
       current_index += 1
+      return true
     end
-    return true
+
   end
 end
