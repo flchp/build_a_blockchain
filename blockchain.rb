@@ -118,7 +118,7 @@ class Blockchain
 
     while current_index < chain.size
       block = chain[current_index]
-
+      puts "count 1"
       # Check that the hash of the block is correct
       if block[:previous_hash] != Blockchain.hash(last_block)
         return false
@@ -131,8 +131,8 @@ class Blockchain
 
       last_block = block
       current_index += 1
-      return true
     end
+    return true
 
   end
 end
